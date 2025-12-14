@@ -1,0 +1,29 @@
+<!-- app/templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Игровая Кулинарная Книга</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        input[type=text] { width: 70%; padding: 8px; }
+        button { padding: 8px 16px; }
+        .recipe { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; white-space: pre-line; }
+    </style>
+</head>
+<body>
+    <h1>Рецепт по игре</h1>
+    <form method="post">
+        <label for="chat_input">Введите запрос:</label><br>
+        <input type="text" id="chat_input" name="chat_input" value="{{ chat_input or '' }}" required><br><br>
+        <button type="submit">Создать рецепт</button>
+    </form>
+
+    {% if recipe %}
+    <div class="recipe">
+        <h2>Ответ:</h2>
+        <p>{{ recipe | safe }}</p>
+    </div>
+    {% endif %}
+</body>
+</html>
