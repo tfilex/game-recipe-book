@@ -55,5 +55,5 @@ Thumbs.db
 # Uv / PEP 582 installed packages
 __pypackages__/
 
-# 
+# from wsl
 *.Identifier
