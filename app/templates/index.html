@@ -5,576 +5,18 @@
     <meta charset="utf-8">
     <title>Игровая Кулинарная Книга</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        :root {
-            --bg-gradient: radial-gradient(circle at top left, #2dd4bf, #1e293b);
-            --card-bg: rgba(15, 23, 42, 0.9);
-            --accent: #22c55e;
-            --accent-soft: rgba(34, 197, 94, 0.18);
-            --accent-strong: rgba(34, 197, 94, 0.35);
-            --border-subtle: rgba(148, 163, 184, 0.4);
-            --text-main: #e5e7eb;
-            --text-muted: #9ca3af;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
-            background: var(--bg-gradient);
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-        }
-
-        .app-shell {
-            width: 100%;
-            max-width: 980px;
-        }
-
-        .glass-card {
-            position: relative;
-            border-radius: 24px;
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.92));
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            box-shadow:
-                0 26px 80px rgba(15, 23, 42, 0.9),
-                0 0 0 1px rgba(15, 23, 42, 0.7);
-            padding: 26px 26px 22px;
-            overflow: hidden;
-        }
-
-        .card-glow {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background:
-                radial-gradient(circle at top left, rgba(52, 211, 153, 0.35), transparent 55%),
-                radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.22), transparent 55%);
-            mix-blend-mode: screen;
-            opacity: 0.7;
-        }
-
-        .card-inner {
-            position: relative;
-            z-index: 1;
-        }
-
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 18px;
-        }
-
-        .title-block {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .logo-pill {
-            width: 40px;
-            height: 40px;
-            border-radius: 999px;
-            background:
-                conic-gradient(from 180deg, #22c55e, #22d3ee, #6366f1, #22c55e);
-            padding: 1px;
-        }
-
-        .logo-pill-inner {
-            width: 100%;
-            height: 100%;
-            border-radius: inherit;
-            background: radial-gradient(circle at 30% 0%, #22c55e, #0b1120);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        .logo-pill-inner span {
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            color: #e5fdf4;
-        }
-
-        .title-text {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .title-text h1 {
-            font-size: 22px;
-            line-height: 1.3;
-            letter-spacing: 0.02em;
-            margin: 0;
-        }
-
-        .title-text p {
-            margin: 0;
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        .status-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: radial-gradient(circle at 0 0, rgba(16, 185, 129, 0.35), transparent 60%);
-            border: 1px solid rgba(34, 197, 94, 0.45);
-            font-size: 11px;
-            color: #bbf7d0;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #22c55e;
-            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.24);
-        }
-
-        .layout {
-            display: grid;
-            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr);
-            gap: 18px;
-        }
-
-        @media (max-width: 840px) {
-            body {
-                padding: 16px;
-            }
-
-            .glass-card {
-                padding: 20px 18px 18px;
-                border-radius: 20px;
-            }
-
-            .layout {
-                grid-template-columns: minmax(0, 1fr);
-            }
-        }
-
-        .panel {
-            border-radius: 18px;
-            background: radial-gradient(circle at top left, rgba(51, 65, 85, 0.65), rgba(15, 23, 42, 0.98));
-            border: 1px solid rgba(148, 163, 184, 0.32);
-            padding: 16px 15px 14px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .panel::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at top center, rgba(148, 163, 184, 0.26), transparent 65%);
-            mix-blend-mode: soft-light;
-            opacity: 0.9;
-            pointer-events: none;
-        }
-
-        .panel-inner {
-            position: relative;
-            z-index: 1;
-        }
-
-        .panel-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-
-        .panel-title {
-            font-size: 13px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.13em;
-            color: #cbd5f5;
-        }
-
-        .panel-subtitle {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .badge {
-            border-radius: 999px;
-            padding: 2px 9px 3px;
-            font-size: 11px;
-            border: 1px solid rgba(148, 163, 184, 0.5);
-            color: #e5e7eb;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .badge-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 999px;
-            background: #22c55e;
-        }
-
-        form {
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        label {
-            font-size: 13px;
-            color: #e5e7eb;
-        }
-
-        .hint {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .input-wrapper {
-            position: relative;
-        }
-
-        textarea,
-        input[type="text"] {
-            width: 100%;
-            border-radius: 14px;
-            border: 1px solid var(--border-subtle);
-            background: radial-gradient(circle at 0 0, rgba(15, 23, 42, 0.2), rgba(15, 23, 42, 0.96));
-            color: var(--text-main);
-            padding: 10px 12px 10px 12px;
-            font-size: 14px;
-            resize: vertical;
-            min-height: 88px;
-            outline: none;
-            transition: border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
-        }
-
-        textarea::placeholder,
-        input[type="text"]::placeholder {
-            color: #6b7280;
-        }
-
-        textarea:focus,
-        input[type="text"]:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.45), 0 0 0 8px rgba(34, 197, 94, 0.16);
-            background: radial-gradient(circle at 0 0, rgba(15, 23, 42, 0.1), rgba(15, 23, 42, 0.96));
-        }
-
-        .actions-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-top: 2px;
-        }
-
-        .examples {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .example-pill {
-            border-radius: 999px;
-            border: 1px dashed rgba(148, 163, 184, 0.65);
-            padding: 4px 9px 5px;
-            font-size: 11px;
-            color: #cbd5f5;
-            cursor: pointer;
-            background: radial-gradient(circle at 0 0, rgba(148, 163, 184, 0.28), rgba(15, 23, 42, 0.96));
-            transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
-        }
-
-        .example-pill:hover {
-            border-style: solid;
-            border-color: rgba(191, 219, 254, 0.8);
-            background: radial-gradient(circle at 0 0, rgba(96, 165, 250, 0.5), rgba(15, 23, 42, 0.96));
-            transform: translateY(-0.5px);
-        }
-
-        .primary-button {
-            border: none;
-            cursor: pointer;
-            border-radius: 999px;
-            padding: 8px 18px 9px;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            color: #022c22;
-            background: radial-gradient(circle at 0 0, #4ade80, #22c55e);
-            box-shadow:
-                0 12px 30px rgba(21, 128, 61, 0.55),
-                0 0 0 1px rgba(22, 163, 74, 0.7);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: transform 0.08s ease, box-shadow 0.12s ease, filter 0.12s ease, background 0.12s ease;
-            white-space: nowrap;
-        }
-
-        .primary-button span.icon {
-            font-size: 14px;
-        }
-
-        .primary-button:hover {
-            transform: translateY(-1px);
-            filter: brightness(1.04);
-            box-shadow:
-                0 16px 40px rgba(22, 163, 74, 0.75),
-                0 0 0 1px rgba(22, 163, 74, 0.9);
-        }
-
-        .primary-button:active {
-            transform: translateY(0);
-            box-shadow:
-                0 10px 26px rgba(22, 163, 74, 0.65),
-                0 0 0 1px rgba(22, 163, 74, 0.85);
-        }
-
-        .primary-button[disabled] {
-            cursor: default;
-            opacity: 0.7;
-            box-shadow:
-                0 8px 18px rgba(22, 163, 74, 0.5),
-                0 0 0 1px rgba(22, 163, 74, 0.6);
-        }
-
-        .loader-dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 999px;
-            background: #0f172a;
-            box-shadow:
-                6px 0 0 0 #0f172a,
-                -6px 0 0 0 #0f172a;
-            animation: pulse 1s infinite alternate;
-        }
-
-        @keyframes pulse {
-            0% {
-                transform: translateX(-1px);
-                opacity: 0.7;
-            }
-            100% {
-                transform: translateX(1px);
-                opacity: 1;
-            }
-        }
-
-        .result-panel {
-            background: radial-gradient(circle at top right, rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.98));
-            border-radius: 18px;
-            border: 1px solid rgba(148, 163, 184, 0.38);
-            padding: 14px 13px 12px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .result-panel::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at top left, rgba(96, 165, 250, 0.55), transparent 65%),
-                radial-gradient(circle at bottom, rgba(34, 197, 94, 0.4), transparent 65%);
-            mix-blend-mode: soft-light;
-            opacity: 0.8;
-            pointer-events: none;
-        }
-
-        .result-inner {
-            position: relative;
-            z-index: 1;
-        }
-
-        .result-header {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-
-        .result-title {
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.16em;
-            color: #dbeafe;
-        }
-
-        .result-meta {
-            font-size: 11px;
-            color: #cbd5f5;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .pill-soft {
-            border-radius: 999px;
-            padding: 2px 8px 3px;
-            background: rgba(15, 23, 42, 0.82);
-            border: 1px solid rgba(148, 163, 184, 0.55);
-        }
-
-        .pill-soft strong {
-            font-weight: 600;
-            color: #e5e7eb;
-        }
-
-        .empty-state {
-            border-radius: 14px;
-            padding: 14px 12px 12px;
-            border: 1px dashed rgba(148, 163, 184, 0.65);
-            background: radial-gradient(circle at top right, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.98));
-            font-size: 13px;
-            color: #e5e7eb;
-        }
-
-        .empty-state-title {
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .empty-state-list {
-            margin: 6px 0 0;
-            padding-left: 18px;
-            font-size: 12px;
-            color: #cbd5f5;
-        }
-
-        .recipe-content {
-            border-radius: 14px;
-            padding: 13px 11px 11px;
-            background: radial-gradient(circle at top, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.98));
-            border: 1px solid rgba(148, 163, 184, 0.7);
-            max-height: 370px;
-            overflow: auto;
-            font-size: 13px;
-            line-height: 1.55;
-            color: #e5e7eb;
-        }
-
-        .recipe-content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .recipe-content::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.96);
-        }
-
-        .recipe-content::-webkit-scrollbar-thumb {
-            background: rgba(148, 163, 184, 0.8);
-            border-radius: 999px;
-        }
-
-        .recipe-content h2,
-        .recipe-content h3,
-        .recipe-content h4 {
-            margin-top: 0.75em;
-            margin-bottom: 0.3em;
-            font-size: 1em;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: #bfdbfe;
-        }
-
-        .recipe-content ul,
-        .recipe-content ol {
-            padding-left: 1.2em;
-            margin: 0.3em 0 0.6em;
-        }
-
-        .badge-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin-top: 9px;
-        }
-
-        .badge-row-left {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .badge-row-pill {
-            border-radius: 999px;
-            padding: 3px 8px 4px;
-            border: 1px solid rgba(148, 163, 184, 0.6);
-            background: rgba(15, 23, 42, 0.9);
-        }
-
-        .badge-row-right {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.16em;
-            color: #9ca3af;
-        }
-
-        .badge-row-right span {
-            color: #bbf7d0;
-        }
-
-        .error-text {
-            color: #fecaca;
-        }
-
-        @media (max-width: 520px) {
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .status-chip {
-                align-self: flex-start;
-            }
-
-            .actions-row {
-                flex-direction: column-reverse;
-                align-items: stretch;
-            }
-
-            .primary-button {
-                justify-content: center;
-                width: 100%;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/style.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 </head>
 <body>
     <div class="app-shell" id="app">
         <div class="glass-card">
-            <div class="card-glow"></div>
             <div class="card-inner">
                 <div class="header">
                     <div class="title-block">
                         <div class="logo-pill">
                             <div class="logo-pill-inner">
-                                <span>GR</span>
+                                <span>GRB</span>
                             </div>
                         </div>
                         <div class="title-text">
@@ -582,13 +24,40 @@
                             <p>Получайте детальные рецепты, вдохновлённые любимыми играми.</p>
                         </div>
                     </div>
-                    <div class="status-chip">
-                        <span class="status-dot"></span>
-                        <span>Онлайн‑советник</span>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div v-if="user" class="user-info">
+                            <span class="user-name">[[ user.username ]]</span>
+                            <button class="auth-button" @click="handleLogout">Выход</button>
+                        </div>
+                        <div v-else>
+                            <button class="auth-button" @click="showLoginModal = true">Вход</button>
+                            <button class="auth-button" @click="showRegisterModal = true" style="margin-left: 8px;">Регистрация</button>
+                        </div>
+                        <div class="status-chip">
+                            <span class="status-dot"></span>
+                            <span>Онлайн‑советник</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="layout">
+                <div class="tabs">
+                    <button
+                        class="tab-button"
+                        :class="{ 'tab-button--active': activeTab === 'generate' }"
+                        @click="activeTab = 'generate'"
+                    >
+                        Генерация рецептов
+                    </button>
+                    <button
+                        class="tab-button"
+                        :class="{ 'tab-button--active': activeTab === 'cabinet' }"
+                        @click="activeTab = 'cabinet'"
+                    >
+                        Личный кабинет
+                    </button>
+                </div>
+
+                <div class="layout" v-if="activeTab === 'generate'">
                     <div class="panel">
                         <div class="panel-inner">
                             <div class="panel-header">
@@ -657,6 +126,7 @@
                                     </button>
                                 </div>
                             </form>
+
                         </div>
                     </div>
 
@@ -671,7 +141,10 @@
                                 </div>
                             </div>
 
-                            <div v-if="!currentRecipe" class="empty-state">
+                            <div v-if="loading" class="empty-state">
+                                <div class="empty-state-title">Ожидание<span class="loading-dots">...</span></div>
+                            </div>
+                            <div v-else-if="!currentRecipe" class="empty-state">
                                 <div class="empty-state-title">Здесь появится ваш рецепт.</div>
                                 <div>Попробуйте один из вариантов:</div>
                                 <ul class="empty-state-list">
@@ -681,7 +154,40 @@
                                 </ul>
                             </div>
 
-                            <div v-else class="recipe-content" v-html="currentRecipe"></div>
+                            <div v-else>
+                                <div v-if="isEditing">
+                                    <input
+                                        v-model="recipeTitle"
+                                        type="text"
+                                        placeholder="Название рецепта"
+                                        style="margin-bottom: 10px;"
+                                    />
+                                    <textarea
+                                        v-model="editedContent"
+                                        class="recipe-content editable"
+                                        style="min-height: 600px;"
+                                    ></textarea>
+                                    <div class="recipe-actions">
+                                        <button class="primary-button" @click="saveEdit" :disabled="savingRecipe">
+                                            [[ savingRecipe ? 'Сохранение...' : 'Сохранить изменения' ]]
+                                        </button>
+                                        <button class="secondary-button" @click="cancelEdit">Отмена</button>
+                                    </div>
+                                </div>
+                                <div v-else>
+                                    <div class="recipe-content">
+                                        [[ currentRecipe ]]
+                                    </div>
+                                    <div class="recipe-actions" v-if="user && currentRecipe">
+                                        <button class="primary-button" @click="saveRecipe" :disabled="savingRecipe">
+                                            [[ savingRecipe ? 'Сохранение...' : 'Сохранить рецепт' ]]
+                                        </button>
+                                        <button v-if="currentRecipeId" class="secondary-button" @click="isEditing = true; editedContent = currentRecipe; recipeTitle = savedRecipes.find(r => r.id === currentRecipeId)?.title || ''">
+                                            Редактировать
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div class="badge-row">
                                 <div class="badge-row-left">
@@ -697,91 +203,161 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Вкладка личного кабинета -->
+                <div v-if="activeTab === 'cabinet'">
+                    <div v-if="!user" class="empty-state">
+                        <div class="empty-state-title">Войдите, чтобы увидеть свои сохранённые рецепты.</div>
+                        <div class="hint">Используйте кнопки «Вход» или «Регистрация» вверху.</div>
+                    </div>
+                    <div v-else class="cabinet-layout">
+                        <div class="cabinet-list">
+                            <div class="panel-header">
+                                <div>
+                                    <div class="panel-title">Мои рецепты</div>
+                                    <div class="panel-subtitle">Список ваших сохранённых рецептов</div>
+                                </div>
+                                <button class="secondary-button" @click="loadRecipes">
+                                    Обновить
+                                </button>
+                            </div>
+                            <div v-if="savedRecipes.length === 0" class="empty-state">
+                                <div class="empty-state-title">У вас пока нет сохранённых рецептов.</div>
+                                <div>Сгенерируйте рецепт на вкладке «Генерация» и сохраните его.</div>
+                            </div>
+                            <div v-else class="recipe-list">
+                                <div
+                                    v-for="recipe in savedRecipes"
+                                    :key="recipe.id"
+                                    class="recipe-item"
+                                    @click="loadRecipeForEdit(recipe.id)"
+                                >
+                                    <div class="recipe-item-title">[[ recipe.title ]]</div>
+                                    <div class="recipe-item-preview">
+                                        [[ recipe.content.replace(/<br\s*\/?>/gi, '\n').split('\n')[0]?.substring(0, 100) ]]
+                                    </div>
+                                    <div class="recipe-item-meta">
+                                        [[ new Date(recipe.created_at).toLocaleDateString('ru-RU') ]]
+                                        <button
+                                            class="secondary-button"
+                                            style="margin-left: 8px; padding: 2px 8px; font-size: 10px;"
+                                            @click.stop="deleteRecipe(recipe.id)"
+                                        >
+                                            Удалить
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cabinet-details">
+                            <div class="result-header">
+                                <div class="result-title">Выбранный рецепт</div>
+                            </div>
+                            <div v-if="!currentRecipe" class="empty-state">
+                                <div class="empty-state-title">Выберите рецепт слева, чтобы посмотреть или отредактировать его.</div>
+                            </div>
+                            <div v-else>
+                                <div v-if="isEditing">
+                                    <input
+                                        v-model="recipeTitle"
+                                        type="text"
+                                        placeholder="Название рецепта"
+                                        class="cabinet-title-input"
+                                    />
+                                    <textarea
+                                        v-model="editedContent"
+                                        class="recipe-content editable"
+                                        style="min-height: 400px;"
+                                    ></textarea>
+                                    <div class="recipe-actions">
+                                        <button class="primary-button" @click="saveEdit" :disabled="savingRecipe">
+                                            [[ savingRecipe ? 'Сохранение...' : 'Сохранить изменения' ]]
+                                        </button>
+                                        <button class="secondary-button" @click="cancelEdit">Отмена</button>
+                                    </div>
+                                </div>
+                                <div v-else>
+                                    <div class="recipe-content">
+                                        [[ currentRecipe ]]
+                                    </div>
+                                    <div class="recipe-actions">
+                                        <button
+                                            class="secondary-button"
+                                            @click="isEditing = true; editedContent = currentRecipe; recipeTitle = savedRecipes.find(r => r.id === currentRecipeId)?.title || ''"
+                                            :disabled="!currentRecipeId"
+                                        >
+                                            Редактировать
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно входа -->
+        <div v-if="showLoginModal" class="modal-overlay" @click.self="showLoginModal = false">
+            <div class="modal">
+                <div class="modal-header">
+                    <div class="modal-title">Вход</div>
+                    <button class="modal-close" @click="showLoginModal = false">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div v-if="authError" class="error-text" style="margin-bottom: 10px;">[[ authError ]]</div>
+                    <input
+                        v-model="loginUsername"
+                        type="text"
+                        placeholder="Имя пользователя"
+                        style="margin-bottom: 10px;"
+                    />
+                    <input
+                        v-model="loginPassword"
+                        type="password"
+                        placeholder="Пароль"
+                    />
+                </div>
+                <div class="modal-footer">
+                    <button class="secondary-button" @click="showLoginModal = false">Отмена</button>
+                    <button class="primary-button" @click="handleLogin" :disabled="authLoading">
+                        [[ authLoading ? 'Вход...' : 'Войти' ]]
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно регистрации -->
+        <div v-if="showRegisterModal" class="modal-overlay" @click.self="showRegisterModal = false">
+            <div class="modal">
+                <div class="modal-header">
+                    <div class="modal-title">Регистрация</div>
+                    <button class="modal-close" @click="showRegisterModal = false">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div v-if="authError" class="error-text" style="margin-bottom: 10px;">[[ authError ]]</div>
+                    <input
+                        v-model="registerUsername"
+                        type="text"
+                        placeholder="Имя пользователя"
+                        style="margin-bottom: 10px;"
+                    />
+                    <input
+                        v-model="registerPassword"
+                        type="password"
+                        placeholder="Пароль"
+                    />
+                </div>
+                <div class="modal-footer">
+                    <button class="secondary-button" @click="showRegisterModal = false">Отмена</button>
+                    <button class="primary-button" @click="handleRegister" :disabled="authLoading">
+                        [[ authLoading ? 'Регистрация...' : 'Зарегистрироваться' ]]
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        const { createApp, ref, computed } = Vue;
-
-        const app = createApp({
-            setup() {
-                const input = ref("{{ chat_input or '' }}");
-                const serverRecipe = ref(`{% if recipe %}{{ recipe | safe }}{% else %}{% endif %}`);
-                const liveRecipe = ref("");
-                const loading = ref(false);
-                const error = ref("");
-                const sessionId = ref(Math.random().toString(36).slice(2, 8).toUpperCase());
-
-                const currentRecipe = computed(() => {
-                    return liveRecipe.value || serverRecipe.value || "";
-                });
-
-                const shortGameHint = computed(() => {
-                    if (!input.value) return "Укажите игру, блюдо и желаемый стиль подачи.";
-                    const lower = input.value.toLowerCase();
-                    if (lower.includes("witcher") || lower.includes("ведьмак")) return "Подходит для тёмного фэнтези и северной кухни.";
-                    if (lower.includes("stardew")) return "Идеально для уютных посиделок или пикника.";
-                    if (lower.includes("skyrim")) return "Позаботьтесь о сытности и тёплых специях.";
-                    return "Добавьте детали про игру, настроение и ограничения по ингредиентам.";
-                });
-
-                const sessionLabel = computed(() => {
-                    return `${sessionId.value}`;
-                });
-
-                const applyExample = (text) => {
-                    if (loading.value) return;
-                    input.value = text;
-                };
-
-                const handleSubmit = async () => {
-                    if (!input.value.trim() || loading.value) return;
-                    loading.value = true;
-                    error.value = "";
-
-                    try {
-                        const response = await fetch("/api/recipe", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Accept": "application/json",
-                            },
-                            body: JSON.stringify({ chat_input: input.value.trim() }),
-                        });
-
-                        if (!response.ok) {
-                            throw new Error("Сервис временно недоступен. Попробуйте ещё раз позже.");
-                        }
-
-                        const data = await response.json();
-                        liveRecipe.value = data.recipe || "";
-                        if (!serverRecipe.value) {
-                            serverRecipe.value = "";
-                        }
-                    } catch (e) {
-                        console.error(e);
-                        error.value = e.message || "Произошла ошибка при получении рецепта.";
-                    } finally {
-                        loading.value = false;
-                    }
-                };
-
-                return {
-                    input,
-                    loading,
-                    error,
-                    currentRecipe,
-                    shortGameHint,
-                    sessionLabel,
-                    applyExample,
-                    handleSubmit,
-                };
-            },
-        });
-
-        app.config.compilerOptions.delimiters = ["[[", "]]"];
-        app.mount("#app");
-    </script>
+    <script src="/static/js/app.js"></script>
 </body>
 </html>

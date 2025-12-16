@@ -57,3 +57,11 @@ __pypackages__/
 
 # from wsl
 *.Identifier
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+app/db/*.db
+app/db/*.sqlite
+app/db/*.sqlite3
