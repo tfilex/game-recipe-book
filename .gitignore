@@ -56,7 +56,7 @@ Thumbs.db
 __pypackages__/
 
 # from wsl
-*.Identifier
+*:Zone.Identifier
 
 # Database files
 *.db
