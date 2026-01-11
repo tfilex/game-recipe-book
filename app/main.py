@@ -10,11 +10,23 @@ import os
 import re
 from typing import Optional, List
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 import logging
 
-from app.db.models import init_db, get_db, User, Recipe
-from app.auth import get_password_hash, authenticate_user, get_current_user, require_auth
+from app.db.models import init_db, get_db, User, Recipe, SessionLocal
+from app.auth import (
+    get_password_hash, 
+    authenticate_user, 
+    get_current_user, 
+    require_auth,
+    create_session,
+    delete_session,
+    cleanup_expired_sessions,
+    generate_csrf_token,
+    get_csrf_token,
+    verify_csrf_token,
+    delete_csrf_token
+)
 
 load_dotenv()
 
@@ -22,6 +34,80 @@ app = FastAPI()
 
 # Инициализация БД при старте
 init_db()
+
+# Middleware для очистки истёкших сессий (оптимизировано: раз в 100 запросов)
+_cleanup_counter = 0
+
+# Список путей, которые не требуют CSRF защиты
+CSRF_EXEMPT_PATHS = {
+    "/api/auth/register",
+    "/api/auth/login",
+    "/api/auth/logout",
+    "/api/auth/me",
+    "/api/auth/csrf-token",
+    "/api/recipe",  # Публичный эндпоинт генерации рецептов
+    "/",
+    "/static",
+}
+
+@app.middleware("http")
+async def csrf_protection_middleware(request: Request, call_next):
+    """Проверка CSRF токенов для изменяющих запросов"""
+    # Безопасные методы не требуют CSRF защиты
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        response = await call_next(request)
+        return response
+    
+    # Проверяем, не является ли путь исключением
+    path = request.url.path
+    if any(path.startswith(exempt) for exempt in CSRF_EXEMPT_PATHS):
+        response = await call_next(request)
+        return response
+    
+    # Получаем session token из cookie
+    session_token = request.cookies.get("session_id")
+    
+    # Если нет сессии, пропускаем (будет обработано require_auth)
+    if not session_token:
+        response = await call_next(request)
+        return response
+    
+    # Получаем CSRF токен из заголовка
+    csrf_token = request.headers.get("X-CSRF-Token")
+    
+    # Проверяем CSRF токен через БД
+    db = SessionLocal()
+    try:
+        if not csrf_token or not verify_csrf_token(db, session_token, csrf_token):
+            return JSONResponse(
+                {"detail": "Неверный CSRF токен"},
+                status_code=403
+            )
+    finally:
+        db.close()
+    
+    response = await call_next(request)
+    return response
+
+
+@app.middleware("http")
+async def cleanup_sessions_middleware(request: Request, call_next):
+    """Очистка истёкших сессий периодически (каждые 100 запросов)"""
+    global _cleanup_counter
+    _cleanup_counter += 1
+    
+    # Очищаем сессии раз в 100 запросов для оптимизации
+    if _cleanup_counter % 100 == 0:
+        db = SessionLocal()
+        try:
+            cleanup_expired_sessions(db)
+        except Exception:
+            pass
+        finally:
+            db.close()
+    
+    response = await call_next(request)
+    return response
 
 # Статические файлы
 import pathlib
@@ -34,6 +120,11 @@ templates = Jinja2Templates(directory="app/templates")
 N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
 if not N8N_WEBHOOK_URL:
     raise RuntimeError("N8N_WEBHOOK_URL environment variable not set")
+
+# Настройки безопасности
+# В production должно быть True (требует HTTPS)
+# В development можно False для работы через HTTP
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
 
 # Pydantic модели
@@ -53,13 +144,27 @@ class RecipeUpdate(BaseModel):
 
 
 class UserRegister(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=3, max_length=50, pattern="^[a-zA-Z0-9_]+$")
+    password: str = Field(..., min_length=8, max_length=128)
+    
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Имя пользователя не может быть пустым")
+        return v.strip()
+    
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Пароль не может быть пустым")
+        return v
 
 
 class UserLogin(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1, max_length=128)
 
 
 async def _generate_recipe_text(chat_input: str) -> str:
@@ -175,8 +280,33 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     
-    response = JSONResponse({"message": "Пользователь успешно зарегистрирован", "username": new_user.username})
-    response.set_cookie(key="session_id", value=user_data.username, httponly=True, max_age=86400 * 30)  # 30 дней
+    # Создаём сессию для нового пользователя (возвращает session_token и csrf_token)
+    session_token, csrf_token = create_session(db, new_user.id, days=30)
+    
+    response = JSONResponse({
+        "message": "Пользователь успешно зарегистрирован", 
+        "username": new_user.username,
+        "csrf_token": csrf_token
+    })
+    response.set_cookie(
+        key="session_id", 
+        value=session_token, 
+        httponly=True, 
+        secure=COOKIE_SECURE,  # Только через HTTPS (в production)
+        max_age=86400 * 30,  # 30 дней
+        samesite="lax",
+        path="/"
+    )
+    # CSRF токен в отдельной cookie (не httpOnly, чтобы JS мог его читать)
+    response.set_cookie(
+        key="csrf_token",
+        value=csrf_token,
+        httponly=False,  # JS должен иметь доступ для отправки в заголовке
+        secure=COOKIE_SECURE,
+        max_age=86400 * 30,
+        samesite="lax",
+        path="/"
+    )
     return response
 
 
@@ -187,25 +317,111 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль")
     
-    response = JSONResponse({"message": "Успешный вход", "username": user.username})
-    response.set_cookie(key="session_id", value=user.username, httponly=True, max_age=86400 * 30)  # 30 дней
+    # Создаём сессию для пользователя (возвращает session_token и csrf_token)
+    session_token, csrf_token = create_session(db, user.id, days=30)
+    
+    response = JSONResponse({
+        "message": "Успешный вход", 
+        "username": user.username,
+        "csrf_token": csrf_token
+    })
+    response.set_cookie(
+        key="session_id", 
+        value=session_token, 
+        httponly=True, 
+        secure=COOKIE_SECURE,  # Только через HTTPS (в production)
+        max_age=86400 * 30,  # 30 дней
+        samesite="lax",
+        path="/"
+    )
+    # CSRF токен в отдельной cookie (не httpOnly, чтобы JS мог его читать)
+    response.set_cookie(
+        key="csrf_token",
+        value=csrf_token,
+        httponly=False,  # JS должен иметь доступ для отправки в заголовке
+        secure=COOKIE_SECURE,
+        max_age=86400 * 30,
+        samesite="lax",
+        path="/"
+    )
     return response
 
 
 @app.post("/api/auth/logout")
-async def logout():
+async def logout(request: Request, db: Session = Depends(get_db)):
     """Выход пользователя"""
+    session_token = request.cookies.get("session_id")
+    if session_token:
+        delete_session(db, session_token)
+        delete_csrf_token(db, session_token)
+    
     response = JSONResponse({"message": "Выход выполнен"})
     response.delete_cookie(key="session_id")
+    response.delete_cookie(key="csrf_token")
     return response
 
 
 @app.get("/api/auth/me")
-async def get_me(user: Optional[User] = Depends(get_current_user)):
+async def get_me(request: Request, user: Optional[User] = Depends(get_current_user), db: Session = Depends(get_db)):
     """Получить информацию о текущем пользователе"""
     if not user:
-        return JSONResponse({"user": None})
-    return JSONResponse({"user": {"id": user.id, "username": user.username}})
+        return JSONResponse({"user": None, "csrf_token": None})
+    
+    session_token = request.cookies.get("session_id")
+    csrf_token = get_csrf_token(db, session_token) if session_token else None
+    
+    # Если CSRF токен отсутствует, генерируем новый
+    if session_token and not csrf_token:
+        csrf_token = generate_csrf_token(db, session_token)
+    
+    response = JSONResponse({
+        "user": {"id": user.id, "username": user.username},
+        "csrf_token": csrf_token
+    })
+    
+    # Обновляем cookie с CSRF токеном, если он был сгенерирован
+    if csrf_token and session_token:
+        response.set_cookie(
+            key="csrf_token",
+            value=csrf_token,
+            httponly=False,
+            secure=COOKIE_SECURE,
+            max_age=86400 * 30,
+            samesite="lax",
+            path="/"
+        )
+    
+    return response
+
+
+@app.get("/api/auth/csrf-token")
+async def get_csrf_token_endpoint(request: Request, user: Optional[User] = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Получить CSRF токен для текущей сессии"""
+    if not user:
+        return JSONResponse({"csrf_token": None}, status_code=401)
+    
+    session_token = request.cookies.get("session_id")
+    if not session_token:
+        return JSONResponse({"csrf_token": None}, status_code=401)
+    
+    csrf_token = get_csrf_token(db, session_token)
+    
+    # Если токен отсутствует, генерируем новый
+    if not csrf_token:
+        csrf_token = generate_csrf_token(db, session_token)
+    
+    response = JSONResponse({"csrf_token": csrf_token})
+    # Обновляем cookie с CSRF токеном
+    response.set_cookie(
+        key="csrf_token",
+        value=csrf_token,
+        httponly=False,
+        secure=COOKIE_SECURE,
+        max_age=86400 * 30,
+        samesite="lax",
+        path="/"
+    )
+    return response
 
 
 # Рецепты

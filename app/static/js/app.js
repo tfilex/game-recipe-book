@@ -12,6 +12,7 @@ const app = createApp({
         
         // Аутентификация
         const user = ref(null);
+        const csrfToken = ref(null);
         const showLoginModal = ref(false);
         const showRegisterModal = ref(false);
         const loginUsername = ref("");
@@ -76,6 +77,71 @@ const app = createApp({
             }
         };
 
+        // Получение CSRF токена из cookie
+        const getCsrfTokenFromCookie = () => {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrf_token') {
+                    return value;
+                }
+            }
+            return null;
+        };
+
+        // Обновление CSRF токена
+        const updateCsrfToken = (token) => {
+            csrfToken.value = token;
+        };
+
+        // Получение CSRF токена с сервера
+        const fetchCsrfToken = async () => {
+            try {
+                const response = await fetch("/api/auth/csrf-token");
+                const data = await response.json();
+                if (data.csrf_token) {
+                    updateCsrfToken(data.csrf_token);
+                }
+            } catch (e) {
+                console.error("Ошибка получения CSRF токена:", e);
+            }
+        };
+
+        // Обёртка для fetch с автоматическим добавлением CSRF токена
+        const fetchWithCsrf = async (url, options = {}) => {
+            // Обновляем CSRF токен из cookie перед каждым запросом
+            const tokenFromCookie = getCsrfTokenFromCookie();
+            if (tokenFromCookie) {
+                updateCsrfToken(tokenFromCookie);
+            }
+
+            // Добавляем CSRF токен в заголовки для изменяющих методов
+            const method = (options.method || 'GET').toUpperCase();
+            if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+                const headers = options.headers || {};
+                if (csrfToken.value) {
+                    headers['X-CSRF-Token'] = csrfToken.value;
+                }
+                options.headers = headers;
+            }
+
+            const response = await fetch(url, options);
+            
+            // Если получили 403, возможно CSRF токен устарел - обновляем
+            if (response.status === 403) {
+                await fetchCsrfToken();
+                // Повторяем запрос с новым токеном
+                if (csrfToken.value && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+                    const headers = options.headers || {};
+                    headers['X-CSRF-Token'] = csrfToken.value;
+                    options.headers = headers;
+                    return await fetch(url, options);
+                }
+            }
+            
+            return response;
+        };
+
         // Проверка авторизации при загрузке
         const checkAuth = async () => {
             try {
@@ -83,7 +149,18 @@ const app = createApp({
                 const data = await response.json();
                 if (data.user) {
                     user.value = data.user;
+                    if (data.csrf_token) {
+                        updateCsrfToken(data.csrf_token);
+                    } else {
+                        await fetchCsrfToken();
+                    }
                     await loadRecipes();
+                } else {
+                    // Пытаемся получить CSRF токен из cookie
+                    const tokenFromCookie = getCsrfTokenFromCookie();
+                    if (tokenFromCookie) {
+                        updateCsrfToken(tokenFromCookie);
+                    }
                 }
             } catch (e) {
                 console.error("Ошибка проверки авторизации:", e);
@@ -111,6 +188,9 @@ const app = createApp({
                 
                 const data = await response.json();
                 user.value = { username: data.username };
+                if (data.csrf_token) {
+                    updateCsrfToken(data.csrf_token);
+                }
                 showRegisterModal.value = false;
                 registerUsername.value = "";
                 registerPassword.value = "";
@@ -143,6 +223,9 @@ const app = createApp({
                 
                 const data = await response.json();
                 user.value = { username: data.username };
+                if (data.csrf_token) {
+                    updateCsrfToken(data.csrf_token);
+                }
                 showLoginModal.value = false;
                 loginUsername.value = "";
                 loginPassword.value = "";
@@ -157,8 +240,9 @@ const app = createApp({
         // Выход
         const handleLogout = async () => {
             try {
-                await fetch("/api/auth/logout", { method: "POST" });
+                await fetchWithCsrf("/api/auth/logout", { method: "POST" });
                 user.value = null;
+                csrfToken.value = null;
                 savedRecipes.value = [];
                 currentRecipeId.value = null;
                 isEditing.value = false;
@@ -178,7 +262,7 @@ const app = createApp({
                 const lines = content.split("\n").filter(l => l.trim());
                 const title = recipeTitle.value || lines[0]?.substring(0, 50) || "Рецепт без названия";
                 
-                const response = await fetch("/api/recipes", {
+                const response = await fetchWithCsrf("/api/recipes", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -226,7 +310,7 @@ const app = createApp({
             
             savingRecipe.value = true;
             try {
-                const response = await fetch(`/api/recipes/${currentRecipeId.value}`, {
+                const response = await fetchWithCsrf(`/api/recipes/${currentRecipeId.value}`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -263,7 +347,7 @@ const app = createApp({
             if (!confirm("Удалить этот рецепт?")) return;
             
             try {
-                const response = await fetch(`/api/recipes/${recipeId}`, {
+                const response = await fetchWithCsrf(`/api/recipes/${recipeId}`, {
                     method: "DELETE"
                 });
                 
@@ -326,14 +410,8 @@ const app = createApp({
             serverRecipe.value = "";
             liveRecipe.value = "";
             
-            // Проверяем, есть ли пользователь в шаблоне (от сервера)
-            const serverUser = "{{ user }}" || null;
-            if (serverUser && serverUser !== "None") {
-                user.value = { username: serverUser };
-                loadRecipes();
-            } else {
-                checkAuth();
-            }
+            // Проверяем авторизацию через API
+            checkAuth();
         });
 
         return {
