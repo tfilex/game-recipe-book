@@ -146,7 +146,7 @@ uvicorn app.main:app --reload
 
 ## Краткое описание API
 
-> Подробности см. в коде `app/main.py` и `app/auth.py`.
+> Подробности см. в коде `app/routers/` (роуты), `app/services/` (бизнес-логика) и `app/auth.py` (аутентификация).
 
 ### Генерация рецепта
 
@@ -209,11 +209,22 @@ uvicorn app.main:app --reload
 game-recipe-book/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py              # Основное приложение FastAPI (роуты, middleware)
+│   ├── main.py              # Точка входа FastAPI приложения (регистрация роутеров и middleware)
+│   ├── config.py            # Конфигурация (переменные окружения, настройки безопасности)
+│   ├── schemas.py           # Pydantic модели для валидации данных
+│   ├── middleware.py        # Middleware функции (CSRF защита, очистка сессий)
 │   ├── auth.py              # Функции аутентификации, сессий и CSRF защиты
 │   ├── db/
 │   │   ├── __init__.py
 │   │   └── models.py        # Модели БД (User, Recipe, Session) и инициализация
+│   ├── routers/             # Роутеры приложения
+│   │   ├── __init__.py
+│   │   ├── home.py          # Роуты главной страницы (GET /, POST /)
+│   │   ├── auth.py          # Роуты аутентификации (/api/auth/*)
+│   │   └── recipes.py       # Роуты для работы с рецептами (/api/recipes/*, /api/recipe)
+│   ├── services/            # Бизнес-логика
+│   │   ├── __init__.py
+│   │   └── recipe_service.py # Сервис генерации рецептов (интеграция с n8n)
 │   ├── templates/
 │   │   └── index.html       # Jinja2-шаблон, в который монтируется Vue-приложение
 │   └── static/

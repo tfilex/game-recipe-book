@@ -1,7 +1,7 @@
 # app/db/models.py
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 
 Base = declarative_base()
@@ -13,7 +13,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     recipes = relationship("Recipe", back_populates="owner", cascade="all, delete-orphan")
 
@@ -26,8 +26,8 @@ class Recipe(Base):
     title = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     original_query = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     owner = relationship("User", back_populates="recipes")
 
@@ -39,7 +39,7 @@ class Session(Base):
     session_token = Column(String, unique=True, index=True, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     csrf_token = Column(String, nullable=True)  # CSRF токен для защиты от CSRF атак
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     expires_at = Column(DateTime, nullable=False)
 
     user = relationship("User")
